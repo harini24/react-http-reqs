@@ -1,48 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import MoviesList from './components/MoviesList';
+import AddMovie from './components/AddMovie';
 import './App.css';
 
 function App() {
-  const [movies, setMovies] = useState([])
-  const [isLoading, setIsLocading] = useState(false)
-  const [error, setError] = useState(null)
+  const [movies, setMovies] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  async function fetchBovieshandler() {
-    setIsLocading(true)
-    setError(null)
+  const fetchMoviesHandler = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await fetch('https://swapi.dev/api/films/')
-      
-      if(!response.ok){
-        throw new Error('Something went wrong')
+      const response = await fetch('https://swapi.dev/api/films/');
+      if (!response.ok) {
+        throw new Error('Something went wrong!');
       }
-      const data = await response.json()
-      const transformedMovies = data.results.map(movie => {
+
+      const data = await response.json();
+
+      const transformedMovies = data.results.map((movieData) => {
         return {
-          id: movie.episode_id,
-          title: movie.title,
-          openingText: movie.opening_crawl,
-          release: movie.release_date
-        }
-      })
-      setMovies(transformedMovies)
-      setIsLocading(false)
-    } catch (e) {
-      setError(e.message)
-      setIsLocading(false)
+          id: movieData.episode_id,
+          title: movieData.title,
+          openingText: movieData.opening_crawl,
+          releaseDate: movieData.release_date,
+        };
+      });
+      setMovies(transformedMovies);
+    } catch (error) {
+      setError(error.message);
     }
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchMoviesHandler();
+  }, [fetchMoviesHandler]);
+
+  async function addMovieHandler(movie) {
+    console.log(movie);
+    const response = await fetch('url',{
+      method:'POST',
+      body:JSON.stringify(movie),
+      headers:{
+        'content-Type':'application/json'
+      }
+    })
+    const data = await response.json()
+    console.log(data)
+  }
+
+  let content = <p>Found no movies.</p>;
+
+  if (movies.length > 0) {
+    content = <MoviesList movies={movies} />;
+  }
+
+  if (error) {
+    content = <p>{error}</p>;
+  }
+
+  if (isLoading) {
+    content = <p>Loading...</p>;
   }
 
   return (
     <React.Fragment>
       <section>
-        <button onClick={fetchBovieshandler}>Fetch Movies</button>
+        <AddMovie onAddMovie={addMovieHandler} />
       </section>
       <section>
-        {isLoading && !error ? <p>Loading</p> : movies.length > 0  ? <MoviesList movies={movies} /> :  !error && <p>found no movies</p>}
-        {!isLoading && error &&<p>{error}</p>}
+        <button onClick={fetchMoviesHandler}>Fetch Movies</button>
       </section>
+      <section>{content}</section>
     </React.Fragment>
   );
 }
